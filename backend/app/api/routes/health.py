@@ -18,11 +18,11 @@ async def health_check() -> HealthResponse:
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
-        if proc.returncode == 0:
+        # transvar --version exits with code 1 but still prints the version
+        raw = ((stdout or b"") + (stderr or b"")).decode().strip()
+        if raw:
             transvar_available = True
-            raw = (stdout or stderr).decode().strip()
-            # version line is typically: "transvar 2.5.x.x"
-            transvar_version = raw.splitlines()[0] if raw else None
+            transvar_version = raw.splitlines()[0]
     except Exception:
         pass
 

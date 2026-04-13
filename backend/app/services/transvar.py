@@ -194,7 +194,13 @@ async def annotate(query: str, mode: str) -> list[TranscriptAnnotation]:
     if not verb:
         raise TransvarError(f"Unknown mode: {mode}")
 
-    cmd = ["transvar", verb, "-i", query.strip(), "--ccds", "--ucsc", "--ensembl"]
+    from app.config import settings
+    cmd = [
+        "transvar", verb,
+        "-i", query.strip(),
+        "--refversion", settings.transvar_refversion,
+        "--ccds", "--ucsc", "--ensembl",
+    ]
 
     proc = await asyncio.create_subprocess_exec(
         *cmd,
@@ -208,11 +214,14 @@ async def annotate(query: str, mode: str) -> list[TranscriptAnnotation]:
         proc.kill()
         raise TransvarTimeoutError(f"TransVar timed out for query: {query!r}")
 
-    if proc.returncode != 0:
-        err = stderr.decode().strip()
-        raise TransvarError(err or f"TransVar exited with code {proc.returncode}")
+    raw_out = stdout.decode()
+    raw_err = stderr.decode().strip()
 
-    raw = stdout.decode()
-    results = _parse_transvar_output(raw, query)
+    # TransVar exits non-zero for missing databases or bad input.
+    # If stderr contains a hard error (not just a warning), raise.
+    if proc.returncode != 0 and not raw_out.strip():
+        raise TransvarError(raw_err or f"TransVar exited with code {proc.returncode}")
+
+    results = _parse_transvar_output(raw_out, query)
     set_cached("annotation", cache_key, results)
     return results

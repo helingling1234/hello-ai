@@ -4,4 +4,6 @@ httpx>=0.27
 pydantic>=2.7
 pydantic-settings>=2.2
 cachetools>=5.3
+# transvar requires setuptools<=67 to build its C extensions
+setuptools==67.8.0
 transvar
