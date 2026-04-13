@@ -202,11 +202,17 @@ async def annotate(query: str, mode: str) -> list[TranscriptAnnotation]:
         "--ccds", "--ucsc", "--ensembl",
     ]
 
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        raise TransvarError(
+            "TransVar is not installed or not in PATH. "
+            "Install with: conda install -c bioconda transvar"
+        )
 
     try:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
